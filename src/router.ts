@@ -7,6 +7,7 @@ export function route(path: string, view: View): void {
 }
 
 export function render(): void {
+  window.dispatchEvent(new Event("route:before"));
   const raw = location.hash.replace(/^#\/?/, "");
   const [name, param] = raw.split("/");
   const view = routes.get(name || "chat") ?? routes.get("chat");

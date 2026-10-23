@@ -32,9 +32,11 @@ describe("ensureDay", () => {
     ensureDay(s, "2026-10-24", gen);
     expect(calls).toBe(1);
     s.chat.idx = 1;
+    s.storySeen = 1;
     ensureDay(s, "2026-10-27", gen);
     expect(calls).toBe(2);
     expect(s.chat.idx).toBe(0);
+    expect(s.storySeen).toBe(0);
     expect(s.chat.day).toBe("2026-10-27");
   });
 });

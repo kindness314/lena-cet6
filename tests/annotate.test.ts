@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { annotate, normalizeForm, resolveWord } from "../src/core/annotate";
+import { annotate, findLemmaMatch, normalizeForm, resolveWord } from "../src/core/annotate";
 import type { Lookup } from "../src/core/types";
 
 const lookup: Record<string, Lookup> = {
@@ -7,8 +7,10 @@ const lookup: Record<string, Lookup> = {
   hard: { ph: "", pos: "a", zh: "难的" },
   run: { ph: "", pos: "v", zh: "跑" },
   do: { ph: "", pos: "v", zh: "做" },
+  you: { ph: "", pos: "pron", zh: "你" },
+  I: { ph: "", pos: "pron", zh: "我" },
 };
-const forms = { studies: "study", harder: "hard", running: "run", don: "do" };
+const forms = { studies: "study", harder: "hard", running: "run", don: "do", does: "do" };
 
 describe("resolveWord", () => {
   it("resolves inflected forms through the forms map", () => {
@@ -23,6 +25,40 @@ describe("resolveWord", () => {
 
   it("returns undefined for unknown words", () => {
     expect(resolveWord("zzzz", forms, lookup)).toBeUndefined();
+  });
+
+  it("resolves capitalized dictionary keys both ways", () => {
+    const caps: Record<string, Lookup> = {
+      France: { ph: "", pos: "n", zh: "法国" },
+      AM: { ph: "", pos: "v", zh: "是" },
+    };
+    expect(resolveWord("france", forms, caps)).toBe("France");
+    expect(resolveWord("France", forms, caps)).toBe("France");
+    expect(resolveWord("am", forms, caps)).toBe("AM");
+  });
+
+  it("resolves contractions to their base word", () => {
+    expect(resolveWord("don't", forms, lookup)).toBe("do");
+    expect(resolveWord("doesn't", forms, lookup)).toBe("do");
+    expect(resolveWord("you're", forms, lookup)).toBe("you");
+    expect(resolveWord("I'm", forms, lookup)).toBe("I");
+  });
+});
+
+describe("findLemmaMatch", () => {
+  it("prefers the exact surface form over an inflection", () => {
+    const hit = findLemmaMatch("Study hard. He studies.", "study", forms, lookup);
+    expect(hit?.text).toBe("Study");
+    expect(hit?.index).toBe(0);
+  });
+
+  it("falls back to an inflected form when the lemma is absent", () => {
+    const word = findLemmaMatch("Running is fun.", "run", forms, lookup);
+    expect(word?.text).toBe("Running");
+  });
+
+  it("returns null when the sentence has no matching form", () => {
+    expect(findLemmaMatch("Nothing here.", "run", forms, lookup)).toBeNull();
   });
 });
 

@@ -2,6 +2,7 @@ import { h } from "../core/dom";
 import type { Ctx } from "../app";
 import { getImported, setImported } from "../app";
 import { annotate, normalizeForm } from "../core/annotate";
+import { enqueueWord } from "../core/session";
 import type { Article } from "../core/types";
 import { shell } from "./shell";
 
@@ -9,7 +10,7 @@ function wordCount(article: Article): number {
   return article.paragraphs.join(" ").split(/\s+/).filter(Boolean).length;
 }
 
-function sheet(ctx: Ctx, word: string, close: () => void): HTMLElement {
+function sheet(ctx: Ctx, word: string, surface: string, close: () => void): HTMLElement {
   const entry = ctx.lookup[word];
   const isTarget = ctx.targets.has(word);
   const speak = () => {
@@ -19,23 +20,30 @@ function sheet(ctx: Ctx, word: string, close: () => void): HTMLElement {
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
   };
+  const wordObj = ctx.words.find((w) => w.w === word);
+  const inQueue = ctx.state.chat.msgs.some((m) => m.w === word);
+  const known = Boolean(ctx.state.words[word]);
   const add = h("button", {
     class: "chip",
-    text: ctx.state.words[word] ? "已在复习里" : "加入复习",
+    text: inQueue ? "今天聊天里已有" : known ? "放进聊天" : "加进聊天",
     on: {
       click: () => {
-        if (ctx.state.words[word]) return;
-        const now = Date.now();
-        ctx.state.words[word] = { box: 0, due: now, seen: 0, wrong: 0 };
+        if (inQueue || !wordObj) return;
+        if (!ctx.state.words[word]) {
+          ctx.state.words[word] = { box: 0, due: Date.now(), seen: 0, wrong: 0 };
+        }
+        add.textContent = enqueueWord(ctx, wordObj) ? "已加进聊天" : "今天聊天里已有";
         ctx.save();
-        add.textContent = "已在复习里";
       },
     },
   });
   const box = h(
     "div",
     { class: "sheet" },
-    h("h4", { text: word }),
+    h("h4", { text: surface }),
+    surface.toLowerCase() !== word.toLowerCase()
+      ? h("div", { class: "muted", text: `原形：${word}` })
+      : null,
     h("div", { class: "muted", text: entry?.ph ? `/${entry.ph}/` : "" }),
     h("p", { text: entry?.zh ?? "未收录" }),
     h(
@@ -51,11 +59,28 @@ function sheet(ctx: Ctx, word: string, close: () => void): HTMLElement {
 
 function reader(ctx: Ctx, article: Article): HTMLElement {
   const paras = article.paragraphs.slice(0, 120);
+  const id = article.id;
+  const ac = new AbortController();
+  const savePos = () => {
+    ctx.state.reads[id] = Math.round(window.scrollY);
+    ctx.save();
+  };
+  window.addEventListener(
+    "route:before",
+    () => {
+      savePos();
+      ac.abort();
+    },
+    { signal: ac.signal },
+  );
+  window.addEventListener("pagehide", savePos, { signal: ac.signal });
+  const saved = ctx.state.reads[id] ?? 0;
+  if (saved > 0) requestAnimationFrame(() => window.scrollTo(0, saved));
   const container = h("div", { class: "reader" });
   let closeSheet = () => {};
-  const open = (word: string) => {
+  const open = (word: string, surface: string) => {
     closeSheet();
-    const el = sheet(ctx, word, () => el.remove());
+    const el = sheet(ctx, word, surface, () => el.remove());
     closeSheet = () => el.remove();
     document.body.append(el);
   };
@@ -67,7 +92,7 @@ function reader(ctx: Ctx, article: Article): HTMLElement {
         const span = h("span", {
           class: "w" + (t.target ? " target" : ""),
           text: t.text,
-          on: { click: () => open(t.word ?? normalizeForm(t.text)) },
+          on: { click: () => open(t.word ?? normalizeForm(t.text), t.text) },
         });
         pEl.append(span);
       } else {
@@ -137,7 +162,7 @@ export function renderRead(ctx: Ctx, param?: string): HTMLElement {
     h(
       "div",
       { class: "card" },
-      h("p", { text: "点任意单词看意思；加进复习的词，会出现在聊天里。" }),
+      h("p", { text: "点任意单词看意思；加进聊天的词，聊天和剧情里都会出现。" }),
       h("a", { class: "chip", text: "导入自己的文章", attrs: { href: "#/read/import" } }),
     ),
   );
@@ -150,5 +175,5 @@ export function renderRead(ctx: Ctx, param?: string): HTMLElement {
     );
     list.append(item);
   }
-  return shell({ title: "阅读", body: list, tab: "read" });
+  return shell({ title: "小说", body: list, tab: "read" });
 }

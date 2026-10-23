@@ -7,6 +7,7 @@ import { renderChat } from "./views/chat";
 import { renderGoals } from "./views/goals";
 import { renderRead } from "./views/read";
 import { renderSettings } from "./views/settings";
+import { renderStory } from "./views/story";
 
 async function boot(): Promise<void> {
   const app = document.getElementById("app");
@@ -25,6 +26,7 @@ async function boot(): Promise<void> {
     ctx.save();
 
     route("chat", () => renderChat(ctx));
+    route("story", () => renderStory(ctx));
     route("read", (id) => renderRead(ctx, id));
     route("goals", () => renderGoals(ctx));
     route("settings", () => renderSettings(ctx));

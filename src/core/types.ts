@@ -20,6 +20,7 @@ export interface Msg {
   zh: string;
   opts: string[];
   correct: number;
+  picked?: number;
 }
 
 export interface Goal {
@@ -52,6 +53,7 @@ export interface State {
   v: 1;
   words: Record<string, WordState>;
   chat: { day: string; msgs: Msg[]; idx: number };
+  storySeen: number;
   goals: Goal[];
   settings: { quota: Quota; newCap: number; sound: boolean };
   reads: Record<string, number>;

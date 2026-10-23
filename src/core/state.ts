@@ -7,6 +7,7 @@ export function defaultState(): State {
     v: 1,
     words: {},
     chat: { day: "", msgs: [], idx: 0 },
+    storySeen: 0,
     goals: [{ id: "cet6", name: "六级笔试", date: "2026-12-12T15:00:00+08:00" }],
     settings: { quota: 12, newCap: 8, sound: true },
     reads: {},
@@ -17,6 +18,7 @@ export function defaultState(): State {
 export function ensureDay(state: State, day: string, gen: () => Msg[]): void {
   if (state.chat.day === day) return;
   state.chat = { day, msgs: gen(), idx: 0 };
+  state.storySeen = 0;
 }
 
 export function exportJson(state: State): string {
@@ -42,6 +44,7 @@ export function importJson(raw: string): State {
     v: 1,
     words: s.words,
     chat: s.chat,
+    storySeen: typeof s.storySeen === "number" ? s.storySeen : 0,
     goals: s.goals,
     settings: { ...defaultState().settings, ...s.settings },
     reads: s.reads ?? {},

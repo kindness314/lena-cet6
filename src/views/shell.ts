@@ -1,6 +1,6 @@
 import { h } from "../core/dom";
 
-export type Tab = "chat" | "read" | "goals";
+export type Tab = "chat" | "story" | "read" | "goals";
 
 export function shell(opts: {
   title: string;
@@ -38,8 +38,9 @@ export function shell(opts: {
   const root = h("div", { class: opts.flush ? "flush-root" : "" }, bar, wrap);
   if (opts.tab) {
     const tabs: { id: Tab; label: string; href: string }[] = [
-      { id: "chat", label: "消息", href: "#/chat" },
-      { id: "read", label: "阅读", href: "#/read" },
+      { id: "chat", label: "聊天", href: "#/chat" },
+      { id: "story", label: "剧情", href: "#/story" },
+      { id: "read", label: "小说", href: "#/read" },
       { id: "goals", label: "目标", href: "#/goals" },
     ];
     const barEl = h("nav", { class: "tabbar" });

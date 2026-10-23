@@ -108,13 +108,23 @@ const cet6 = all
   .sort((a, b) => (a.r || 1e9) - (b.r || 1e9) || a.word.localeCompare(b.word))
   .slice(0, 800);
 
-const lookupRows = all.filter(
-  (r) =>
-    tagsOf(r).includes(" cet4 ") ||
-    tagsOf(r).includes(" cet6 ") ||
-    tagsOf(r).includes(" ky ") ||
-    (r.r > 0 && r.r <= 20000),
-);
+const lookupRows = all.filter((r) => {
+  const tag = tagsOf(r);
+  const basic = tag.includes(" zk ") || tag.includes(" gk ");
+  const copula = /^(?:be|do|have)的/.test(r.translation);
+  const contraction = /^[A-Za-z]+(?:n't|'re|'ve|'ll|'d|'m)$/.test(r.word) && /[\u4e00-\u9fa5]/.test(r.translation);
+  const extra = /^(?:cannot|gonna|gotta|wanna)$/i.test(r.word);
+  return (
+    basic ||
+    copula ||
+    contraction ||
+    extra ||
+    tag.includes(" cet4 ") ||
+    tag.includes(" cet6 ") ||
+    tag.includes(" ky ") ||
+    (r.r > 0 && r.r <= 20000)
+  );
+});
 
 const words = cet6.map((r) => ({
   id: r.word,

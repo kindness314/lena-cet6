@@ -91,16 +91,22 @@ for (const [a, b] of pairs) {
   const lemmas = new Set(tokens.map(lemmaOf));
   for (const lemma of lemmas) {
     if (!targets.has(lemma)) continue;
-    const list = buckets.get(lemma) ?? [];
-    if (list.length >= 2) continue;
-    if (list.some(([s]) => s === en)) continue;
-    list.push([en, t2s(zh)]);
-    buckets.set(lemma, list);
+    const map = buckets.get(lemma) ?? new Map();
+    if (!map.has(en)) map.set(en, t2s(zh));
+    buckets.set(lemma, map);
   }
 }
 
 const out = {};
-for (const [k, v] of buckets) out[k] = v;
+for (const [lemma, map] of buckets) {
+  const list = [...map.entries()];
+  const exact = ([sentence]) =>
+    sentenceWords(sentence).some(
+      (token) => token.toLowerCase().replace(/’/g, "'") === lemma.toLowerCase(),
+    );
+  list.sort((a, b) => Number(exact(b)) - Number(exact(a)));
+  out[lemma] = list.slice(0, 2);
+}
 writeFileSync(new URL("sentences.json", OUT), JSON.stringify(out));
 console.log(
   `pairs=${seenPairs} targets=${targets.size} covered=${Object.keys(out).length} ` +
