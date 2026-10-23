@@ -61,6 +61,7 @@ function reader(ctx: Ctx, article: Article): HTMLElement {
   const paras = article.paragraphs.slice(0, 120);
   const id = article.id;
   const ac = new AbortController();
+  let closeSheet = () => {};
   const savePos = () => {
     ctx.state.reads[id] = Math.round(window.scrollY);
     ctx.save();
@@ -69,6 +70,8 @@ function reader(ctx: Ctx, article: Article): HTMLElement {
     "route:before",
     () => {
       savePos();
+      closeSheet();
+      document.querySelectorAll(".sheet").forEach((el) => el.remove());
       ac.abort();
     },
     { signal: ac.signal },
@@ -77,7 +80,6 @@ function reader(ctx: Ctx, article: Article): HTMLElement {
   const saved = ctx.state.reads[id] ?? 0;
   if (saved > 0) requestAnimationFrame(() => window.scrollTo(0, saved));
   const container = h("div", { class: "reader" });
-  let closeSheet = () => {};
   const open = (word: string, surface: string) => {
     closeSheet();
     const el = sheet(ctx, word, surface, () => el.remove());
