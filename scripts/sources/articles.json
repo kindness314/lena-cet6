@@ -1,0 +1,12 @@
+[
+  { "gid": 1080, "title": "A Modest Proposal", "author": "Jonathan Swift", "start": 0, "maxWords": 700 },
+  { "gid": 147, "title": "Common Sense", "author": "Thomas Paine", "start": 6, "maxWords": 700 },
+  { "gid": 205, "title": "Walden", "author": "Henry David Thoreau", "start": 8, "maxWords": 700 },
+  { "gid": 1661, "title": "The Adventures of Sherlock Holmes", "author": "Arthur Conan Doyle", "start": 22, "maxWords": 700 },
+  { "gid": 2009, "title": "The Origin of Species", "author": "Charles Darwin", "start": 40, "maxWords": 700 },
+  { "gid": 1404, "title": "The Federalist Papers", "author": "Hamilton, Jay, Madison", "start": 4, "maxWords": 700 },
+  { "gid": 2148, "title": "The Works of Edgar Allan Poe", "author": "Edgar Allan Poe", "start": 30, "maxWords": 700 },
+  { "gid": 1232, "title": "The Prince", "author": "Niccolò Machiavelli", "start": 6, "maxWords": 700 },
+  { "gid": 35, "title": "The Time Machine", "author": "H. G. Wells", "start": 2, "maxWords": 700 },
+  { "gid": 1596, "title": "Smoke Bellew", "author": "Jack London", "start": 10, "maxWords": 700 }
+]

@@ -1,0 +1,14 @@
+.project/
+.mesh/
+node_modules/
+dist/
+/data/
+.tmp/
+.env
+.env.*
+*.log
+.DS_Store
+coverage/
+
+!public/data/
+!public/data/**
