@@ -1,60 +1,30 @@
-import { createReadStream, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
+import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
+import { RAW_DIR, RAW_MANIFEST, readJson, sha256File } from "./lib/sources.mjs";
+import { cleanZh, lookupZh, parseCsvLine, posKey } from "./lib/ecdict.mjs";
 
-const SRC = new URL("../data/ecdict.csv", import.meta.url);
+const SRC = new URL("ecdict.csv", RAW_DIR);
 const OUT = new URL("../public/data/", import.meta.url);
-
-function parseCsvLine(line) {
-  const out = [];
-  let field = "";
-  let quoted = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (quoted) {
-      if (c === '"') {
-        if (line[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else quoted = false;
-      } else field += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ",") {
-      out.push(field);
-      field = "";
-    } else field += c;
-  }
-  out.push(field);
-  return out;
-}
-
-function cleanZh(translation) {
-  const lines = translation
-    .replace(/\\n/g, "\n")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const first = lines.find((l) => !l.startsWith("[")) ?? lines[0] ?? "";
-  const noPos = first.replace(/^(?:[a-z]{1,5}\.\s*)+/i, "");
-  const senses = noPos
-    .split(/[，,；;]/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 2);
-  return (senses.join("，") || noPos).replace(/\s+/g, " ").slice(0, 28);
-}
-
-function posKey(pos, translation) {
-  let raw = (pos || "").split(":")[0].trim();
-  if (!raw) {
-    const m = /^([a-z]{1,5})\./i.exec(translation.replace(/\\n/g, "\n"));
-    raw = m ? m[1].toLowerCase() : "";
-  }
-  if (raw.startsWith("v")) return "v";
-  if (raw === "n") return "n";
-  if (raw === "a" || raw === "adj") return "a";
-  if (raw === "ad" || raw === "adv") return "r";
-  return raw || "?";
-}
+const CORE_TARGET = 1500;
+const ADVANCED_TARGET = 500;
+const PHONETIC_FIXES = {
+  surprisingly: "səˈpraɪzɪŋli",
+  positively: "ˈpɒzətɪvli",
+  ironically: "aɪˈrɒnɪkli",
+  consistently: "kənˈsɪstəntli",
+  predominantly: "prɪˈdɒmɪnəntli",
+  consultancy: "kənˈsʌltənsi",
+  videotape: "ˈvɪdioʊteɪp",
+  waggon: "ˈwæɡən",
+  "living-room": "ˈlɪvɪŋ ruːm",
+  "so-called": "ˌsoʊ ˈkɔːld",
+  "well-known": "ˌwel ˈnoʊn",
+  "world-wide": "ˌwɜːrld ˈwaɪd",
+};
+// ECDICT carries these as CET4 headwords, but they are misspellings of entries
+// already in the list (reservoir, up-to-date). Do not teach them as new words.
+const BAD_WORDS = new Set(["reservior", "uptodate"]);
 
 function rank(row) {
   const bnc = Number(row.bnc) || 0;
@@ -70,11 +40,15 @@ function exchangeForms(row) {
     if (!k || !v || k === "0" || k === "1") continue;
     for (const form of v.split(",")) {
       const f = form.trim().toLowerCase();
-      if (f && f !== row.word.toLowerCase()) forms.push(f);
+      if (f && f !== row.word.toLowerCase() && !forms.includes(f)) forms.push(f);
     }
   }
-  return forms;
+  return forms.slice(0, 10);
 }
+
+const rawManifest = readJson(RAW_MANIFEST).find((x) => x.name === "ecdict.csv");
+if (!rawManifest) throw new Error("ecdict.csv missing from scripts/sources/raw.json");
+if ((await sha256File(SRC)) !== rawManifest.sha256) throw new Error("ecdict.csv hash mismatch; run npm run data:fetch -- --force");
 
 const all = [];
 const rl = createInterface({ input: createReadStream(SRC), crlfDelay: Infinity });
@@ -103,10 +77,82 @@ for await (const line of rl) {
 }
 
 const tagsOf = (row) => ` ${row.tag} `;
-const cet6 = all
-  .filter((r) => tagsOf(r).includes(" cet6 "))
-  .sort((a, b) => (a.r || 1e9) - (b.r || 1e9) || a.word.localeCompare(b.word))
-  .slice(0, 800);
+const eligible = all.filter((r) => {
+  const tag = tagsOf(r);
+  return (
+    tag.includes(" cet6 ") &&
+    // ECDICT treats zk/gk as junior-high/high-school vocabulary. The app is
+    // for CET6 learners, so keeping those words would spend daily slots on
+    // words such as "system", "court" and "effect".
+    !tag.includes(" zk ") &&
+    !tag.includes(" gk ") &&
+    /^[A-Za-z][A-Za-z'-]*$/.test(r.word)
+  );
+});
+const byRank = (a, b) => (a.r || 1e9) - (b.r || 1e9) || a.word.localeCompare(b.word);
+eligible.sort(byRank);
+
+const core = eligible.slice(0, CORE_TARGET);
+const coreWords = new Set(core.map((r) => r.word));
+const advancedPool = eligible.filter((r) => {
+  if (coreWords.has(r.word)) return false;
+  const tag = tagsOf(r);
+  // True CET6 extension: neither a junior-high nor a CET4 tag.
+  return !tag.includes(" cet4 ") && !tag.includes(" gk ");
+});
+const advanced = advancedPool.slice(0, ADVANCED_TARGET);
+
+// CET4 words that were missing from the original 2000. The 638 candidates are
+// all tagged cet4 and not gk/zk, but 94 of them carry only the cet4 tag; the
+// other 542 are also cet6. Two ECDICT spelling variants are excluded. Keep them
+// separate so the app can prioritise them before the old core tail.
+const selectedWords = new Set([...core, ...advanced].map((r) => r.word));
+const foundation = all
+  .filter((r) => {
+    const tag = tagsOf(r);
+    return (
+      tag.includes(" cet4 ") &&
+      !tag.includes(" zk ") &&
+      !tag.includes(" gk ") &&
+      /^[A-Za-z][A-Za-z'-]*$/.test(r.word) &&
+      !BAD_WORDS.has(r.word) &&
+      !selectedWords.has(r.word)
+    );
+  })
+  .sort(byRank);
+
+const picked = [];
+let fi = 0;
+let ai = 0;
+// First pass: three CET4 gap words, then one advanced word. This puts the
+// missing foundation early without dropping CET6 extension words entirely.
+while (fi < foundation.length) {
+  for (let k = 0; k < 3 && fi < foundation.length; k++) {
+    picked.push({ tier: "foundation", row: foundation[fi++] });
+  }
+  if (ai < advanced.length) picked.push({ tier: "advanced", row: advanced[ai++] });
+}
+let ci = 0;
+// After the foundation pass, keep the original 3 core + 1 advanced rhythm.
+while (ci < core.length || ai < advanced.length) {
+  for (let k = 0; k < 3 && ci < core.length; k++) {
+    picked.push({ tier: "core", row: core[ci++] });
+  }
+  if (ai < advanced.length) picked.push({ tier: "advanced", row: advanced[ai++] });
+  if (ci >= core.length && ai >= advanced.length) break;
+}
+
+const words = picked.map(({ tier, row }, i) => ({
+  id: row.word,
+  w: row.word,
+  ph: PHONETIC_FIXES[row.word] ?? row.phonetic,
+  pos: posKey(row.pos, row.translation),
+  zh: cleanZh(row.translation),
+  freq: i + 1,
+  tier,
+  sourceRank: row.r || 0,
+  forms: exchangeForms(row),
+}));
 
 const lookupRows = all.filter((r) => {
   const tag = tagsOf(r);
@@ -126,18 +172,13 @@ const lookupRows = all.filter((r) => {
   );
 });
 
-const words = cet6.map((r) => ({
-  id: r.word,
-  w: r.word,
-  ph: r.phonetic,
-  pos: posKey(r.pos, r.translation),
-  zh: cleanZh(r.translation),
-  freq: r.r || 1e9,
-}));
-
 const lookup = {};
 for (const r of lookupRows) {
-  lookup[r.word] = { ph: r.phonetic, pos: posKey(r.pos, r.translation), zh: cleanZh(r.translation) };
+  lookup[r.word] = {
+    ph: r.phonetic,
+    pos: posKey(r.pos, r.translation),
+    zh: lookupZh(r.translation) || cleanZh(r.translation),
+  };
 }
 for (const w of words) lookup[w.w] ??= { ph: w.ph, pos: w.pos, zh: w.zh };
 
@@ -154,5 +195,7 @@ writeFileSync(new URL("words.json", OUT), JSON.stringify(words));
 writeFileSync(new URL("lookup.json", OUT), JSON.stringify(lookup));
 writeFileSync(new URL("forms.json", OUT), JSON.stringify(forms));
 console.log(
-  `words=${words.length} lookup=${Object.keys(lookup).length} forms=${Object.keys(forms).length}`,
+  `words=${words.length} foundation=${foundation.length} core=${core.length} advanced=${advanced.length} ` +
+    `lookup=${Object.keys(lookup).length} forms=${Object.keys(forms).length} ` +
+    `firstTierMix=${picked.slice(0, 16).map((x) => x.tier[0]).join("")}`,
 );

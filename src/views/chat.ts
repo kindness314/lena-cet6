@@ -2,7 +2,8 @@ import { h } from "../core/dom";
 import type { Ctx } from "../app";
 import { localDay } from "../core/random";
 import type { Msg } from "../core/types";
-import { addMore, answerCurrent, feedbackText } from "../core/session";
+import { dueCount } from "../core/review";
+import { addMore, answerCurrent, answerTapAllowed, feedbackText } from "../core/session";
 import { highlight, miniAvatar } from "./parts";
 import { shell } from "./shell";
 
@@ -20,9 +21,15 @@ function noteRow(text: string): HTMLElement {
 
 function card(ctx: Ctx, msg: Msg, answered: boolean): (Node | string)[] {
   const parts = msg.en ? highlight(ctx, msg.en, msg.w) : [msg.w];
-  const children: (Node | string)[] = [];
-  if (msg.en) children.push(h("div", { class: "word", text: msg.w }));
-  children.push(h("div", { class: "en" }, ...parts));
+  const children: (Node | string)[] = [
+    h(
+      "div",
+      { class: "word-line" },
+      h("div", { class: "word", text: msg.w }),
+      msg.ph ? h("span", { class: "word-ph", text: `/${msg.ph}/` }) : null,
+    ),
+  ];
+  if (msg.en) children.push(h("div", { class: "en" }, ...parts));
   if (answered && msg.picked === undefined) {
     children.push(h("div", { class: "zh", text: msg.zh }));
   } else if (!answered) {
@@ -60,7 +67,7 @@ export function renderChat(ctx: Ctx): HTMLElement {
         h("a", { class: "plain", text: "去小说", attrs: { href: "#/read" } }),
       ),
     );
-    return shell({ title: "Lena", avatar: "L", body: flow, tab: "chat", flush: true });
+    return shell({ title: "Lena", avatar: "L", body: flow, tab: "chat", flush: true, due: dueCount(ctx) });
   }
 
   for (let i = 0; i < idx && i < msgs.length; i++) {
@@ -74,15 +81,22 @@ export function renderChat(ctx: Ctx): HTMLElement {
     const msg = msgs[idx];
     msg.opts.forEach((text, i) => {
       opts.append(
-        h("button", {
-          text,
-          on: {
-            click: () => {
-              if (!answerCurrent(ctx, i)) return;
-              renderChatInto(ctx);
+        h(
+          "button",
+          {
+            class: "choice",
+            attrs: { type: "button" },
+            on: {
+              click: () => {
+                if (!answerTapAllowed()) return;
+                if (!answerCurrent(ctx, i, msg.id)) return;
+                renderChatInto(ctx);
+              },
             },
           },
-        }),
+          h("span", { class: "num", text: "ABCD"[i] ?? String(i + 1), attrs: { "aria-hidden": "true" } }),
+          h("span", { class: "choice-text", text }),
+        ),
       );
     });
   } else {
@@ -92,10 +106,12 @@ export function renderChat(ctx: Ctx): HTMLElement {
         text: "再来 5 条",
         on: {
           click: () => {
+            // 连点保护：加完立刻重渲染，第二下会落到新题的选项上，替人答掉一道
+            if (!answerTapAllowed()) return;
             if (addMore(ctx) === 0) {
               opts.replaceChildren(
-                h("div", { class: "muted end-note", text: "词表走完了，去小说里点几个词。" }),
-                h("a", { class: "chip", text: "去小说", attrs: { href: "#/read" } }),
+                h("div", { class: "muted end-note", text: "这一幕的词用完了，剩下的词去小游戏里练。" }),
+                h("a", { class: "chip", text: "去小游戏", attrs: { href: "#/game" } }),
               );
               return;
             }
@@ -105,6 +121,16 @@ export function renderChat(ctx: Ctx): HTMLElement {
       }),
     );
     opts.append(h("a", { class: "chip", text: "去小说", attrs: { href: "#/read" } }));
+    const due = dueCount(ctx);
+    if (due > 0) {
+      opts.append(
+        h("a", {
+          class: "chip review-link",
+          text: `去复习 · ${due} 个到期`,
+          attrs: { href: "#/review" },
+        }),
+      );
+    }
   }
 
   const body = h("div", { class: "chat-body" }, flow, opts);
@@ -114,16 +140,18 @@ export function renderChat(ctx: Ctx): HTMLElement {
   });
 
   return shell({
-    title: `Lena · ${Math.max(msgs.length - idx, 0)} 条未回`,
+    title: "Lena",
+    eyebrow: msgs.length - idx > 0 ? `TODAY · ${msgs.length - idx} 条未回` : "TODAY · 已回完",
     avatar: "L",
     action: h("a", {
-      class: "chip",
+      class: "chip quiet",
       text: "设置",
       attrs: { href: "#/settings" },
     }),
     body,
     tab: "chat",
     flush: true,
+    due: dueCount(ctx),
   });
 }
 

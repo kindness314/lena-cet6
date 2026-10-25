@@ -1,0 +1,68 @@
+[
+  {
+    "name": "ecdict.csv",
+    "url": "https://raw.githubusercontent.com/skywind3000/ECDICT/master/ecdict.csv",
+    "license": "MIT",
+    "sha256": "1a6947e04785db63613a92e14903cdae7954f7e84860b10e68e5c7cbb3f9c3cf",
+    "bytes": 65933428,
+    "retrieved": "2026-10-24",
+    "note": "ECDICT 社区词典，非官方考试大纲"
+  },
+  {
+    "name": "cmn-eng_links.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn-eng_links.tsv.bz2",
+    "license": "CC BY 2.0 FR",
+    "sha256": "7fb926b7ea92d0a9270b546a3f8aa89b523ff086b0b56bd938bac129ed3ff73b",
+    "bytes": 481442,
+    "retrieved": "2026-10-24",
+    "note": "Tatoeba 众包例句链接"
+  },
+  {
+    "name": "cmn_sentences.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences.tsv.bz2",
+    "license": "CC BY 2.0 FR",
+    "sha256": "896eb1a6ef068fc0a501d0ab0d3059dd097bec0ea056c052e386f4491cdacab7",
+    "bytes": 1258968,
+    "retrieved": "2026-10-24",
+    "note": "Tatoeba 中文句子"
+  },
+  {
+    "name": "eng_sentences.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences.tsv.bz2",
+    "license": "CC BY 2.0 FR",
+    "sha256": "bb3dcc28a8984a26dc466ee14eb53c4210b0dd9bb111b9d686d1efc83ecf091c",
+    "bytes": 24908986,
+    "retrieved": "2026-10-24",
+    "note": "Tatoeba 英文句子"
+  },
+  {
+    "name": "WikiMatrix.en-zh.txt.zip",
+    "url": "https://object.pouta.csc.fi/OPUS-WikiMatrix/v1/moses/en-zh.txt.zip",
+    "license": "CC BY-SA 4.0",
+    "sha256": "a7b99bd29d5b3445a2293a661b60f341f2fe9009540ef1662d1373481ac53bbf",
+    "bytes": 103866994,
+    "retrieved": "2026-10-24",
+    "timeoutMs": 1800000,
+    "note": "WikiMatrix via OPUS；署名并相同方式共享；引用 Schwenk et al. (2019)"
+  },
+  {
+    "name": "UNPC.en-zh.txt.zip",
+    "url": "https://object.pouta.csc.fi/OPUS-UNPC/v1.0/moses/en-zh.txt.zip",
+    "license": "UN Parallel Corpus terms; attribution required",
+    "sha256": "527313b09c3c4975c65c3424bb573da846f30b375aeb099117096e2c53769b2f",
+    "bytes": 1535707641,
+    "retrieved": "2026-10-24",
+    "timeoutMs": 2400000,
+    "note": "联合国平行语料；须承认联合国为来源并引用 Ziemski et al. (2016)，不得暗示联合国背书"
+  },
+  {
+    "name": "OpenSubtitles.en-zh_CN.txt.zip",
+    "url": "https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2024/moses/en-zh_CN.txt.zip",
+    "license": "ODC-BY",
+    "sha256": "ac2fd8c041f3b03dde29a683d3c225587188ec70f61e85111d75463a8f9089fe",
+    "bytes": 594348923,
+    "retrieved": "2026-10-24",
+    "timeoutMs": 1800000,
+    "note": "OpenSubtitles v2024 via OPUS；仅作最后兜底；链接 opensubtitles.org"
+  }
+]

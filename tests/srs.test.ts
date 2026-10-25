@@ -18,12 +18,13 @@ describe("answerBox", () => {
     expect(next.due).toBe(now + INTERVALS[5]);
   });
 
-  it("sends a wrong answer back to ten minutes", () => {
+  it("sends a wrong answer to tomorrow instead of ten minutes", () => {
     const now = 0;
     const next = answerBox({ box: 4, due: 0, seen: 4, wrong: 1 }, false, now);
     expect(next.box).toBe(0);
     expect(next.due).toBe(now + INTERVALS[0]);
     expect(next.wrong).toBe(2);
     expect(next.seen).toBe(4);
+    expect(INTERVALS[0]).toBe(86_400_000);
   });
 });

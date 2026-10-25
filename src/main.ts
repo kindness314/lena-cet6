@@ -1,11 +1,13 @@
 import "./style.css";
-import { fetchJson, generate, makeCtx } from "./app";
+import { fetchJson, makeCtx } from "./app";
 import { loadState } from "./core/storage";
 import type { Article, Lookup, Sentences, Word } from "./core/types";
 import { route, start } from "./router";
 import { renderChat } from "./views/chat";
+import { renderGame } from "./views/game";
 import { renderGoals } from "./views/goals";
 import { renderRead } from "./views/read";
+import { renderReview } from "./views/review";
 import { renderSettings } from "./views/settings";
 import { renderStory } from "./views/story";
 
@@ -22,12 +24,12 @@ async function boot(): Promise<void> {
     ]);
     const state = loadState();
     const ctx = makeCtx(state, words, lookup, forms, sentences, articles);
-    generate(state, words, sentences);
-    ctx.save();
 
     route("chat", () => renderChat(ctx));
     route("story", () => renderStory(ctx));
     route("read", (id) => renderRead(ctx, id));
+    route("game", (mode) => renderGame(ctx, mode));
+    route("review", () => renderReview(ctx));
     route("goals", () => renderGoals(ctx));
     route("settings", () => renderSettings(ctx));
     start();

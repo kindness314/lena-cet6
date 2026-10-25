@@ -11,12 +11,12 @@ export default defineConfig({
       manifest: {
         name: "Lena",
         short_name: "Lena",
-        description: "每天 12 条消息的六级词卡",
+        description: "聊天、剧情、小说和小游戏共用一份六级学习进度。",
         start_url: "./",
         scope: "./",
         display: "standalone",
-        background_color: "#101014",
-        theme_color: "#101014",
+        background_color: "#f6f1ea",
+        theme_color: "#f6f1ea",
         lang: "zh-CN",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },

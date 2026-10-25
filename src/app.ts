@@ -3,6 +3,7 @@ import { saveState } from "./core/storage";
 import { buildDay } from "./core/messages";
 import { ensureDay } from "./core/state";
 import { localDay } from "./core/random";
+import { sceneForState } from "./core/scenes";
 
 export interface Ctx {
   state: State;
@@ -21,7 +22,22 @@ export const IMPORT_KEY = "cet6.import.v1";
 export function getImported(): Article | null {
   try {
     const raw = localStorage.getItem(IMPORT_KEY);
-    return raw ? (JSON.parse(raw) as Article) : null;
+    if (!raw) return null;
+    const a = JSON.parse(raw) as Partial<Article>;
+    if (!a || typeof a.title !== "string" || !Array.isArray(a.paragraphs)) return null;
+    const paragraphs = a.paragraphs.filter((p): p is string => typeof p === "string" && p.trim().length > 0);
+    if (paragraphs.length === 0) return null;
+    return {
+      id: "own",
+      title: a.title.trim() || "我导入的文章",
+      source: "我的导入",
+      url: "",
+      license: "",
+      paragraphs,
+      category: "我的导入",
+      level: "自定",
+      wordCount: paragraphs.join(" ").split(/\s+/).filter(Boolean).length,
+    };
   } catch {
     return null;
   }
@@ -42,6 +58,7 @@ export function generate(state: State, words: Word[], sentences: Sentences): voi
       quota: state.settings.quota,
       newCap: state.settings.newCap,
       seed: day,
+      themeWords: sceneForState(state, day).theme,
     }),
   );
 }

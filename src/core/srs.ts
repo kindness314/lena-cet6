@@ -1,12 +1,13 @@
 import type { WordState } from "./types";
 
+/** 0 号位留给答错的词：当天不再出现，明天再来。 */
 export const INTERVALS = [
-  10 * 60_000,
   86_400_000,
   2 * 86_400_000,
   4 * 86_400_000,
   7 * 86_400_000,
   15 * 86_400_000,
+  30 * 86_400_000,
 ];
 
 export function answerBox(s: WordState, correct: boolean, now: number): WordState {

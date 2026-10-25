@@ -9,7 +9,13 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "icons": "node scripts/gen-icons.mjs",
-    "data": "python scripts/extract.py && node scripts/build-words.mjs && node scripts/build-sentences.mjs && node scripts/build-articles.mjs && node scripts/check-data.mjs"
+    "data:fetch": "node scripts/fetch-sources.mjs",
+    "data:verify": "node scripts/verify-raw.mjs",
+    "data:sources": "node scripts/check-sources.mjs",
+    "data:extract": "python scripts/extract.py",
+    "data:build": "node scripts/build-words.mjs && node scripts/build-sentences.mjs && node scripts/build-articles.mjs && node scripts/build-glossary.mjs",
+    "data:translate": "node scripts/translate-articles.mjs",
+    "data": "npm run data:verify && npm run data:sources && npm run data:extract && npm run data:build && node scripts/check-data.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

@@ -1,13 +1,12 @@
 import type { State } from "./types";
-import { defaultState, STORAGE_KEY } from "./state";
+import { defaultState, sanitizeState, STORAGE_KEY } from "./state";
 
 export function loadState(): State {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    const parsed = JSON.parse(raw) as State;
-    if (parsed.v !== 1) return defaultState();
-    return { ...defaultState(), ...parsed, settings: { ...defaultState().settings, ...parsed.settings } };
+    const parsed: unknown = JSON.parse(raw);
+    return sanitizeState(parsed);
   } catch {
     return defaultState();
   }
